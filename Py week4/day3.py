@@ -19,5 +19,24 @@ app = FastAPI()
 
 @app.get ("/calcolatrice/somma")
 def somma(a: float, b: float):
-    somma= a+b
-    return {"risultato": somma} 
+    ris= a+b
+    return {"risultato": ris} 
+
+@app.get ("/calcolatrice/sottrazione")
+def sottrazione(a: float, b: float):
+    ris= a-b
+    return {"risultato": ris}
+
+@app.get ("/calcolatrice/moltiplicazione")
+def moltiplicazione(a: float, b: float):
+    ris= a*b
+    return {"risultato": ris}
+
+@app.get ("/calcolatrice/divsione")
+def divsione(a: float, b: float):
+    if b==0: return "Non divisibile per 0"
+    else: 
+        ris= a/b
+        return {"risultato": ris}
+
+
