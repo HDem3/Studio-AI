@@ -23,10 +23,24 @@ app = FastAPI()
 # email
 # età
 
+lista=[]
+
 @app.post("/signup")
 def signup(user: Utente):
+    lista.append(user)
     return {
         "msg": f"Benvenuto {user.nome}!",
         "email": user.email,
         "eta": user.eta
     }
+
+@app.get("/utenti")
+def get_utenti():
+    return {
+        "Numero Utenti" : len(lista),
+        **{
+            f"utente {i+1}": user
+            for i, user in enumerate(lista)
+        } 
+
+    }   
