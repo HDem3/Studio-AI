@@ -12,41 +12,44 @@
 
 
 from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 
+
 class Task(BaseModel):
-    id: int
     describ: str
 
 app = FastAPI()
 ltask = []
+contatore = 1
 
 @app.post("/creaTask")
 def creaTask(task: Task):
-    ltask.append(task)
-    return {"msg": "task creata"}
+    global contatore 
+    new_task= {"id": contatore, "describ": task.describ}
+    ltask.append(new_task)
+    contatore+=1
+    return {"msg": "task creata", ** new_task}
+
 
 @app.get("/visualizza")
 def getTask():
-    return {
-        "Numero task" : len(ltask),
-        **{
-            f"task {i+1}": task
-            for i, task in enumerate(ltask)
-        } 
-    }
+    risultato = {"totale_tasks": len(ltask)}
+    for t in ltask:
+        risultato[f"task {t['id']}"] = t["describ"]
+    return risultato
 
 @app.get("/visualizzaID/{task_id}")
 def findTask(task_id: int):
     for task in ltask:
-        if task.id == task_id:
+        if task["id"] == task_id:
             return task
-    return {"errore": "task non trovata"}
+    raise HTTPException(status_code=404, detail="task non trovata")
 
 @app.delete("/eliminaTask/{task_id}")
 def deleteTask(task_id: int):
     for task in ltask:
-        if task.id == task_id:
+        if task["id"] == task_id:
             ltask.remove(task)
             return {"msg": "task eliminata"}
-    return {"errore": "task non trovata"}
+    raise HTTPException(status_code=404, detail="task non trovata")
