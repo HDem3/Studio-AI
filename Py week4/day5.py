@@ -12,31 +12,41 @@
 
 
 from fastapi import FastAPI
-from pydantic import BaseModel, EmailStr # formatto email
+from pydantic import BaseModel
 
 class Task(BaseModel):
     id: int
     describ: str
 
 app = FastAPI()
-
-ltask=[]
+ltask = []
 
 @app.post("/creaTask")
-def creaTask(task : Task):
+def creaTask(task: Task):
     ltask.append(task)
     return {"msg": "task creata"}
 
 @app.get("/visualizza")
-def getTask(task: Task):
-    return task
+def getTask():
+    return {
+        "Numero task" : len(ltask),
+        **{
+            f"task {i+1}": task
+            for i, task in enumerate(ltask)
+        } 
+    }
 
-@app.get("/visualizzaID")
-def getTaskID(task: Task, toGet: Task[id]):
-    for toGet in task.item():
-        return task[toGet]
+@app.get("/visualizzaID/{task_id}")
+def findTask(task_id: int):
+    for task in ltask:
+        if task.id == task_id:
+            return task
+    return {"errore": "task non trovata"}
 
-@app.delete("/visualizzaID")
-def deleteTaskID(task: Task, toDelete: Task[id]):
-    for toDelete in task.item():
-        return task[toDelete]
+@app.delete("/eliminaTask/{task_id}")
+def deleteTask(task_id: int):
+    for task in ltask:
+        if task.id == task_id:
+            ltask.remove(task)
+            return {"msg": "task eliminata"}
+    return {"errore": "task non trovata"}
