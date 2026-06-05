@@ -1,16 +1,16 @@
 import sqlite3
 
-conn = sqlite3.connect("mydb.db")
+conn = sqlite3.connect("todolist.db")
 cur = conn.cursor()
 
 cur.execute(
-    "CREATE TABLE IF NOT EXISTS users("
+    "CREATE TABLE IF NOT EXISTS todolist("
     "id INTEGER PRIMARY KEY AUTOINCREMENT,"
-    "name TEXT)"
+    "task TEXT)"
 )
 
-cur.execute("INSERT INTO users(name) VALUES ('Alice')")
-cur.execute("INSERT INTO users(name) VALUES ('Bob')")
+cur.execute("INSERT INTO todolist(task) VALUES ('andare parco')")
+cur.execute("INSERT INTO todolist(task) VALUES ('palestra')")
 
 conn.commit()
 conn.close()
