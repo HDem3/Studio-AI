@@ -18,7 +18,7 @@ def db_init():
     cur.execute(
         '''
         CREATE TABLE IF NOT EXISTS tasks(
-            id INTEGER PRIMARY KEY 
+            id INTEGER PRIMARY KEY, 
             titolo TEXT NOT NULL,
             descrizione TEXT,
             completato BOOLEAN NOT NULL DEFAULT 0
@@ -83,7 +83,7 @@ def delete_task(id: int):
     
     cur.close()
     conn.close()
-    return {"status": "ok", "message": f"Task {task_id} eliminato"} 
+    return {"status": "ok", "message": f"Task {id} eliminato"} 
 
 # Update a task by id
 @app.put("/tasks/{id}")
@@ -113,3 +113,4 @@ def update_task(id: int, task: TaskUpdate):
     cur.close()
     conn.close()
     return {"status": "ok", "message": f"Task {id} aggiornato"}
+
