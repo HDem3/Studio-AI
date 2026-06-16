@@ -1,0 +1,40 @@
+# Virtual environment
+venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VS Code
+.vscode/
+
+# Sensitive files
+*.env
+*.env.*
+
+# Logs
+*.log
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# SQLite (se lo usi)
+*.db
+*.sqlite3
+
+# Alembic (solo se vuoi ignorare i file generati automaticamente)
+alembic/versions/*.py
+
+# Pytest
+.pytest_cache/
