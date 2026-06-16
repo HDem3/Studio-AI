@@ -1,3 +1,5 @@
+#SALVA I DATI DAL SERVER AL DATABASE SQLITE3
+    
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import sqlite3
