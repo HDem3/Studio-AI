@@ -4,7 +4,6 @@ from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
 
 import sqlite3
-import bcrypt
 import jwt
 #======================
 # Configuration
@@ -38,9 +37,12 @@ def init_db():
         '''CREATE TABLE IF NOT EXISTS tasks(
                 id INTEGER PRIMARY KEY,
                 task TEXT NOT NULL,
-                completed BOOLEAN NOT NULL,
+                completed INTEGER NOT NULL,
                 user_id INTEGER NOT NULL)'''
     )
+    
+
+    #cur.execute("DROP TABLE tasks")
 
     conn.commit()
 
@@ -54,7 +56,12 @@ init_db()
 #=======================
 # Password hashing
 #=======================
+#def pwd_hash(pwd: str) -> str:
+#    return pwd_context.hash(pwd)
+
 def pwd_hash(pwd: str) -> str:
+    print("PWD VALUE:", repr(pwd), "LEN:", len(pwd))
+    pwd.strip()
     return pwd_context.hash(pwd)
 
 def verify_pwd(current_pwd: str, hashed_pwd: str) -> bool:
@@ -68,7 +75,7 @@ class User(BaseModel):
 
 class Task(BaseModel):
     title: str
-    complete: bool
+    complete: int
 
 #====================
 # Token generation
@@ -93,10 +100,10 @@ def decode_token(token: str) -> dict:
 # API Endpoint
 #======================
 def get_current_user(authorization: str = Header(...)):
-    if not authorization.startswith("Bearer "):
-        raise HTTPException(status_code=401, detail="Invalid authorization header")
+    #if not authorization.startswith("Bearer "):
+     #   raise HTTPException(status_code=401, detail="Invalid authorization header")
 
-    token = authorization.removeprefix("Bearer ").strip()
+    token = authorization.removeprefix("bearer ").strip()
 
     if not token:
         raise HTTPException(status_code=401, detail="Token missing")
@@ -106,23 +113,43 @@ def get_current_user(authorization: str = Header(...)):
 
 
 
+#@app.post("/signup")
+#def signup(user: User):
+#    hashed_pwd= pwd_hash(user.password)
+#    
+#    conn= get_db()
+#    cur= conn.cursor()
+#
+#    cur.execute(
+#        'INSERT INTO users (username, hashed_pwd) VALUES (?, ?)',
+#        (user.username, hashed_pwd)
+#    )
+#    conn.commit()
+#
+#    cur.close()
+#    conn.close()
+#    return {"message": f"User {user.username} created successfully."}
+#
+
 @app.post("/signup")
 def signup(user: User):
-    hashed_pwd= pwd_hash(user.password)
-    
-    conn= get_db()
-    cur= conn.cursor()
+    try:
+        hashed_pwd = pwd_hash(user.password)
 
-    cur.execute(
-        'INSERT INTO users (username, hashed_pwd) VALUES (?, ?)',
-        (user.username, hashed_pwd)
-    )
-    conn.commit()
+        conn = get_db()
+        cur = conn.cursor()
 
-    cur.close()
-    conn.close()
-    return {"message": f"User {user.username} created successfully."}
+        cur.execute(
+            'INSERT INTO users (username, hashed_pwd) VALUES (?, ?)',
+            (user.username, hashed_pwd)
+        )
+        conn.commit()
 
+        return {"message": "User created"}
+
+    except Exception as e:
+        print("ERROR:", e)
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/login")
 def login(user: User):
@@ -159,14 +186,14 @@ def new_task(task: Task, user: str = Depends(get_current_user)):
     user_id= db_user["id"]
 
     cur.execute(
-        'INSERT INTO tasks (task, completed, user_id)'
-        'VALUES (?, ?, ?)',
+        'INSERT INTO tasks (task, completed, user_id) VALUES (?, ?, ?)',
         (task.title, task.complete, user_id )
     )
     conn.commit()
 
     cur.close()
     conn.close()
+    return {"msg": "task creata"}
 
     
 
