@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, status, Depends, Header
+from fastapi import FastAPI, HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
 from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
@@ -99,15 +100,8 @@ def decode_token(token: str) -> dict:
 #======================
 # API Endpoint
 #======================
-def get_current_user(authorization: str = Header(...)):
-    #if not authorization.startswith("Bearer "):
-     #   raise HTTPException(status_code=401, detail="Invalid authorization header")
-
-    token = authorization.removeprefix("bearer ").strip()
-
-    if not token:
-        raise HTTPException(status_code=401, detail="Token missing")
-
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
+    token = credentials.credentials  # già solo il token, senza "Bearer"
     payload = decode_token(token)
     return payload["sub"]
 
