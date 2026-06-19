@@ -1,52 +1,66 @@
-from fastapi import FastAPI, HTTPException, status, Depends
+#pip install fastapi uvicorn passlib[bcrypt] 
+
+# Utenti
+# register
+# login
+# 🔑 Sicurezza
+# password hashata
+# JWT token
+# 📋 Task
+# crea task (solo loggati)
+# vedi task SOLO tuoi
+# elimina task SOLO tuoi
+
+from fastapi import FastAPI, HTTPException
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from pydantic import BaseModel
-from datetime import timedelta, datetime, timezone
 from passlib.context import CryptContext
-
+from pydantic import BaseModel
 import sqlite3
-import jwt
-#======================
-# Configuration
-#======================
-JWT_SECRET = "your_jwt_secret_key"
-JWT_ALGORITHM = "HS256"
-JWT_EXPIRE_MINUTES = 30
 
-app = FastAPI()
+
+
+
+
+
+#======================
+# Config
+#======================
+app= FastAPI()
 pwd_context= CryptContext(schemes=["bcrypt"], bcrypt__rounds=11, deprecated="auto")
 
-#======================
-# Database Functions
-#======================
-DB_NAME = "users.db"
+JWT_SECRET= "your_jwt_secret_key"
+JWT_ALGORITHM= "HS256"
+JWT_EXPIRED_MINUTES= 30
+
+#=====================
+# BD Functions
+#=====================
+DB_NAME= "users.db"
 def get_db():
-    conn = sqlite3.connect(DB_NAME)
-    conn.row_factory = sqlite3.Row
+    conn= sqlite3.connect(DB_NAME)
+    conn.row_factory= sqlite3
+    conn.execute("PRAGMA foreign_key= ON")
     return conn
 
 def init_db():
     conn= get_db()
     cur= conn.cursor()
+
     cur.execute(
-        '''CREATE TABLE IF NOT EXISTS users(
-                id INTEGER PRIMARY KEY, 
-                username TEXT NOT NULL UNIQUE,
-                hashed_pwd TEXT NOT NULL)'''
-        )
+        """CREATE TABLE IF NOT EXISTS user(
+                userID INTEGER PRIMARY KEY,
+                username TEXT NOT NULL,
+                password TEXT NOT NULL)"""
+    )
     cur.execute(
-        '''CREATE TABLE IF NOT EXISTS tasks(
+        """CREATE TABLE IF NOT EXISTS task(
                 id INTEGER PRIMARY KEY,
                 task TEXT NOT NULL,
-                completed INTEGER NOT NULL,
-                user_id INTEGER NOT NULL)'''
-    )
-    
-
-    #cur.execute("DROP TABLE tasks")
-
+                completed BOOLEAN NOT NULL DEFAULT 0,
+                userID INTEGER NOT NULL,
+                FOREIGN KEY (userID) REFERENCES user(userID) ON DELETE CASCADE)"""
+    )# prima creare colonna poi collegare FK 
     conn.commit()
-
     cur.close()
     conn.close()
 
@@ -54,142 +68,5 @@ init_db()
 
 
 
-#=======================
-# Password hashing
-#=======================
-#def pwd_hash(pwd: str) -> str:
-#    return pwd_context.hash(pwd)
-
-def pwd_hash(pwd: str) -> str:
-    print("PWD VALUE:", repr(pwd), "LEN:", len(pwd))
-    pwd.strip()
-    return pwd_context.hash(pwd)
-
-def verify_pwd(current_pwd: str, hashed_pwd: str) -> bool:
-    return pwd_context.verify(current_pwd, hashed_pwd)
 
 
-# Model for user & task
-class User(BaseModel):
-    username: str
-    password: str
-
-class Task(BaseModel):
-    title: str
-    complete: int
-
-#====================
-# Token generation
-#====================
-def create_token(data: dict) -> str:
-    to_encode= data.copy()
-    expire= datetime.now(timezone.utc)+ timedelta(minutes= JWT_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    token= jwt.encode(to_encode, JWT_SECRET, algorithm= JWT_ALGORITHM)
-    return token
-
-def decode_token(token: str) -> dict:
-    try:
-        payload= jwt.decode(token, JWT_SECRET, algorithms= [JWT_ALGORITHM])
-        return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token expired")
-    except jwt.InvalidTokenError:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    
-#======================
-# API Endpoint
-#======================
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(HTTPBearer())):
-    token = credentials.credentials  # già solo il token, senza "Bearer"
-    payload = decode_token(token)
-    return payload["sub"]
-
-
-
-#@app.post("/signup")
-#def signup(user: User):
-#    hashed_pwd= pwd_hash(user.password)
-#    
-#    conn= get_db()
-#    cur= conn.cursor()
-#
-#    cur.execute(
-#        'INSERT INTO users (username, hashed_pwd) VALUES (?, ?)',
-#        (user.username, hashed_pwd)
-#    )
-#    conn.commit()
-#
-#    cur.close()
-#    conn.close()
-#    return {"message": f"User {user.username} created successfully."}
-#
-
-@app.post("/signup")
-def signup(user: User):
-    try:
-        hashed_pwd = pwd_hash(user.password)
-
-        conn = get_db()
-        cur = conn.cursor()
-
-        cur.execute(
-            'INSERT INTO users (username, hashed_pwd) VALUES (?, ?)',
-            (user.username, hashed_pwd)
-        )
-        conn.commit()
-
-        return {"message": "User created"}
-
-    except Exception as e:
-        print("ERROR:", e)
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/login")
-def login(user: User):
-    conn= get_db()
-    cur= conn.cursor()
-
-    cur.execute(
-        'SELECT * FROM users WHERE username = ?',
-        (user.username,)
-    )
-    db_user= cur.fetchone()
-
-    cur.close()
-    conn.close()
-
-    if db_user and verify_pwd(user.password, db_user["hashed_pwd"]):
-        token_data= {"sub": db_user["username"]}
-        token= create_token(token_data)
-        return {"access_token": token, "token_type": "bearer"}
-    else:  
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid username or password")
-    
-
-@app.post("/new_task")
-def new_task(task: Task, user: str = Depends(get_current_user)):
-    conn= get_db()
-    cur= conn.cursor()
-    
-    cur.execute(
-        'SELECT * FROM users WHERE username = ?',
-        (user,)
-    )
-    db_user= cur.fetchone()
-    user_id= db_user["id"]
-
-    cur.execute(
-        'INSERT INTO tasks (task, completed, user_id) VALUES (?, ?, ?)',
-        (task.title, task.complete, user_id )
-    )
-    conn.commit()
-
-    cur.close()
-    conn.close()
-    return {"msg": "task creata"}
-
-    
-
-
-    
